@@ -37,10 +37,18 @@ each feature and the nextest `ci` profile. It runs the same way on macOS and Lin
 Build the `dev` image on the host and create an OpenShell sandbox from it:
 
 ```sh
-docker build --target dev -t <component>-dev .
-openshell sandbox create --name <component> --from <component>-dev \
+docker build --target dev -t <repository>:dev .
+openshell sandbox create --name <sandbox> --from <repository>:dev \
   --policy openshell/policy.yaml --env HOME=/sandbox --detach -- sleep infinity
 ```
+
+OpenShell limits sandbox names to 19 characters, so sandboxes and other runtime
+identifiers use a short form: `vv-` plus a short kind and the component name. The
+kinds are `srv` for services, `mcp` for MCP servers, `rt` for runtimes, `app`,
+`sdk`, `tpl` for templates, `demo` for showcases and `qual` for qualification suites,
+and repositories without a kind use `vv-<name>`. For example, `veoveo-service-gateway`
+runs as `vv-srv-gateway` and `veoveo-mcp-time` as `vv-mcp-time`. Repositories,
+crates, binaries and images keep their full names.
 
 Inside the sandbox, the `sandbox` user owns the Rust toolchain and Cargo home, so
 rustup and Cargo install components, targets and crates as needed. A coding agent on
