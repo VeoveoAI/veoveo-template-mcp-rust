@@ -11,4 +11,8 @@ These rules apply to this repository and to component repositories created from 
 - Pin exact versions and image digests. When changing a pin, verify the latest stable
   release at its source.
 - Run `docker build --target check .` on macOS and on Linux before pushing.
+- Names, identifiers and formats follow the
+  [naming and format conventions](https://github.com/VeoveoAI/veoveo-core/blob/main/docs/CONVENTIONS.md).
+  Where a standard governs a name or format, follow it; extend a standard only through
+  its own extension mechanism. Nothing carries a version number before it is released.
 - Commit small, coherent changes. Commits carry no AI or tool attribution.

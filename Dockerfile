@@ -30,19 +30,25 @@ FROM source AS check
 RUN cargo fmt --check \
     && cargo clippy --locked --all-targets --all-features -- -D warnings \
     && cargo deny --locked check \
-    && cargo hack check --locked --each-feature --no-dev-deps \
+    && cargo hack check --each-feature --no-dev-deps \
     && cargo nextest run --locked --profile ci
 
 FROM source AS build
 ARG COMPONENT
 RUN cargo build --locked --release --bin "${COMPONENT}" \
-    && cp "target/release/${COMPONENT}" /home/sandbox/component
+    && cp "target/release/${COMPONENT}" "/home/sandbox/${COMPONENT}"
 
 FROM debian:trixie-slim@sha256:a29215f6a35e51e22adffa17f89e9d2ef06214e64a2bad10d765c46aea49f11f AS runtime
 ARG COMPONENT
-RUN useradd --system --uid 10001 --no-create-home component
-COPY --from=build /home/sandbox/component /usr/local/bin/component
-USER component
-ENTRYPOINT ["/usr/local/bin/component"]
-LABEL org.opencontainers.image.source="https://github.com/VeoveoAI/veoveo-template-mcp-rust" \
+ARG VERSION
+ARG REVISION
+RUN useradd --system --uid 10001 --no-create-home "${COMPONENT}"
+COPY --from=build "/home/sandbox/${COMPONENT}" "/usr/local/bin/${COMPONENT}"
+USER ${COMPONENT}
+# The exec form cannot expand build arguments, so the binary path is fixed here.
+ENTRYPOINT ["/usr/local/bin/veoveo-template-mcp-rust"]
+LABEL org.opencontainers.image.title="${COMPONENT}" \
+      org.opencontainers.image.source="https://github.com/VeoveoAI/${COMPONENT}" \
+      org.opencontainers.image.version="${VERSION}" \
+      org.opencontainers.image.revision="${REVISION}" \
       org.opencontainers.image.licenses="Apache-2.0"

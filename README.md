@@ -20,8 +20,15 @@ and gate configuration current.
 
 ## Start a component
 
-Create the repository from this template, rename the placeholder crate to the
-repository name and set `COMPONENT` in the `Dockerfile` to the binary name.
+Create the repository from this template and rename the placeholder crate to the
+repository name. In the `Dockerfile`, set `COMPONENT` and the `ENTRYPOINT` path to that
+name: the crate, binary, image and image title all use the repository name. Build the
+runtime image with its version and source revision:
+
+```sh
+docker build --target runtime -t <repository>:<version> \
+  --build-arg VERSION=<version> --build-arg REVISION="$(git rev-parse HEAD)" .
+```
 
 ## Gate
 
@@ -39,7 +46,7 @@ Build the `dev` image on the host and create an OpenShell sandbox from it:
 ```sh
 docker build --target dev -t <repository>:dev .
 openshell sandbox create --name <sandbox> --from <repository>:dev \
-  --policy openshell/policy.yaml --env HOME=/sandbox --detach -- sleep infinity
+  --policy openshell/policy.yaml --detach -- sleep infinity
 ```
 
 OpenShell limits sandbox names to 19 characters, so sandboxes and other runtime
