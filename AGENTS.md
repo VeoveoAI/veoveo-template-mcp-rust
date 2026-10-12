@@ -14,5 +14,6 @@ These rules apply to this repository and to component repositories created from 
 - Names, identifiers and formats follow the
   [naming and format conventions](https://github.com/VeoveoAI/veoveo-core/blob/main/docs/CONVENTIONS.md).
   Where a standard governs a name or format, follow it; extend a standard only through
-  its own extension mechanism. Nothing carries a version number before it is released.
+  its own extension mechanism. URIs, paths and identifiers carry no version segment such
+  as `/v1`; releases carry versions.
 - Commit small, coherent changes. Commits carry no AI or tool attribution.
