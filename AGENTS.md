@@ -6,6 +6,10 @@ These rules apply to this repository and to component repositories created from 
   supported configuration.
 - Prefer strong types: typed structs, enums and domain identifiers over raw strings and
   JSON wherever the shape is known.
+- MCP comes from [veoveo-sdk-rust](https://github.com/VeoveoAI/veoveo-sdk-rust): hosting, registration with the Gateway,
+  the forwarded identity, permission requirements, the documents and contract
+  resources, subscriptions and the MCP Tasks adapter. Depend on it by Git revision.
+  veoveo-core holds no MCP; take types, the store, Tasks and audit from it.
 - The server owns one PostgreSQL schema named after its slug and applies the crate's
   `migrations/` there at startup. Never edit an applied migration; add a new one.
 - Every SQL statement is a `.sql` file beside the code that runs it, run through sqlx's
@@ -29,7 +33,9 @@ These rules apply to this repository and to component repositories created from 
   release at its source.
 - Run `docker build --target check .` on macOS and on Linux before pushing.
 - Names, identifiers and formats follow the
-  [naming and format conventions](https://github.com/VeoveoAI/veoveo-core/blob/main/docs/CONVENTIONS.md).
+  [naming and format conventions](https://github.com/VeoveoAI/veoveo-core/blob/main/docs/CONVENTIONS.md),
+  and MCP names follow the SDK's
+  [MCP naming conventions](https://github.com/VeoveoAI/veoveo-sdk-rust/blob/main/docs/CONVENTIONS.md).
   Where a standard governs a name or format, follow it; extend a standard only through
   its own extension mechanism. URIs, paths and identifiers carry no version segment such
   as `/v1`; releases carry versions.

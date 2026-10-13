@@ -1,7 +1,10 @@
 # veoveo-template-mcp-rust
 
 This template holds the starting files for a Veoveo MCP server written in Rust. A new
-component repository copies them once and owns them from then on. Components couple
+component repository copies them once and owns them from then on. A server serves MCP
+through [veoveo-sdk-rust](https://github.com/VeoveoAI/veoveo-sdk-rust), which registers it with the Gateway and verifies the
+identity the Gateway forwards, and stores its state through
+[veoveo-core](https://github.com/VeoveoAI/veoveo-core). Components couple
 only through contracts, conformance suites and the `rust-version` of the crates they
 compile from other repositories, so each repository keeps its own image, toolchain
 and gate configuration current.
