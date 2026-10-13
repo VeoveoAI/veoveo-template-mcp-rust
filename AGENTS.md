@@ -6,6 +6,23 @@ These rules apply to this repository and to component repositories created from 
   supported configuration.
 - Prefer strong types: typed structs, enums and domain identifiers over raw strings and
   JSON wherever the shape is known.
+- The server owns one PostgreSQL schema named after its slug and applies the crate's
+  `migrations/` there at startup. Never edit an applied migration; add a new one.
+- Every SQL statement is a `.sql` file beside the code that runs it, run through sqlx's
+  checked `query_file*!` macros. Builds read the committed `.sqlx` metadata, because
+  `.cargo/config.toml` sets `SQLX_OFFLINE`. After changing a query or a migration,
+  regenerate the metadata from an empty target directory.
+- Statements and tables follow the server schema rules of veoveo-core's
+  [database design](https://github.com/VeoveoAI/veoveo-core/blob/435fc1a90d5761f6dca2af05f4cadde324b72428/docs/DATABASE.md),
+  which `tests/database_conformance.rs` checks. A statement binds its tenant, bounds its
+  rows and reaches them through an index in a generic plan. A table has a primary key,
+  an index whose leading columns are each foreign key's, and a
+  `COMMENT ON TABLE … IS 'Retention: …'`. A statement that cannot comply carries a
+  `-- veoveo:` marker that states its reason.
+- Page a listing with core's `PageSize` and a `KeysetCursor` from a `CursorScope`
+  bound to the listing and the tenant, with one statement for the first page and one
+  for the pages after a cursor. Do not write a `$cursor IS NULL OR …` predicate, which
+  loses the index seek in a cached generic plan.
 - Keep test logic in Rust and tool behavior in each tool's own configuration. Do not add
   a task runner or shell scripts that hold test logic.
 - Pin exact versions and image digests. When changing a pin, verify the latest stable
