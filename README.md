@@ -32,7 +32,7 @@ bound to the tenant, through a first-page and a next-page statement. Every state
 a `.sql` file that sqlx checks at compile time against the migrated schema.
 
 The statements and tables follow the server schema rules of veoveo-core's
-[database design](https://github.com/VeoveoAI/veoveo-core/blob/f685fbfd3d28a477d35f77cee3feacc8787772ac/docs/DATABASE.md):
+[database design](https://github.com/VeoveoAI/veoveo-core/blob/50e72a3a1895d59b4f1eedd2b50cf947fa5d2e72/docs/DATABASE.md):
 tenant predicates, row bounds, index use under generic plans, and a primary key, an
 index behind every foreign key and a `Retention:` comment on every table.
 `tests/database_conformance.rs` checks them against a fresh database. Tests need the
@@ -50,6 +50,18 @@ CARGO_TARGET_DIR=<empty directory> cargo sqlx prepare --workspace -- --all-targe
 The metadata also covers the queries of the core crates, and prepare records only the
 crates it compiles. The `check` stage of the `Dockerfile` builds that database and fails
 when the metadata is stale.
+
+## Tasks, providers, usage and audit
+
+The template's crate runs no Tasks. A server that does runs them through the SDK's
+`TaskWorker`, where `ctx.step` keeps a restarted Task from repeating finished work and
+`ctx.operation` with `ctx.wait` parks a Task on an outside provider until the
+provider's event reaches the server's callback route; the SDK's
+[Task work](https://github.com/VeoveoAI/veoveo-sdk-rust/blob/main/crates/veoveo-sdk-rust/DESIGN.md#task-work) describes both. Metered or billed work records an estimate
+and the actual usage through `ctx.usage()` against usage kinds the server declares, in
+core's [usage ledger](https://github.com/VeoveoAI/veoveo-core/blob/50e72a3a1895d59b4f1eedd2b50cf947fa5d2e72/platform/usage/DESIGN.md). Audit classes, reason codes and
+target URIs are the server's own, under its slug, as core's
+[audit record contract](https://github.com/VeoveoAI/veoveo-core/blob/50e72a3a1895d59b4f1eedd2b50cf947fa5d2e72/platform/audit/contract/DESIGN.md) describes.
 
 ## Start a component
 

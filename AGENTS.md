@@ -9,7 +9,7 @@ These rules apply to this repository and to component repositories created from 
 - MCP comes from [veoveo-sdk-rust](https://github.com/VeoveoAI/veoveo-sdk-rust): hosting, registration with the Gateway,
   the forwarded identity, permission requirements, the documents and contract
   resources, subscriptions, the MCP Tasks adapter and calls to other servers. Depend on
-  it by Git revision. veoveo-core holds no MCP; take types, the store, Tasks and audit
+  it by Git revision. veoveo-core holds no MCP; take types, the store, Tasks, usage and audit
   from it.
 - A server that calls another server depends on that server's `contract` feature by Git
   revision, declares the permissions it calls with through
@@ -18,6 +18,25 @@ These rules apply to this repository and to component repositories created from 
   [calls to other servers](https://github.com/VeoveoAI/veoveo-sdk-rust/blob/main/crates/veoveo-sdk-rust/DESIGN.md#calls-to-other-servers)
   describe. A server whose tools others call publishes each tool's request as a
   `ToolCall` in its own `contract` feature.
+- Run Tasks through the SDK's `TaskWorker`, whose handler receives the Task's `ctx`, as
+  the SDK's [Task work](https://github.com/VeoveoAI/veoveo-sdk-rust/blob/main/crates/veoveo-sdk-rust/DESIGN.md#task-work) describes. Wrap work a restarted Task must not
+  repeat in `ctx.step`, which returns a finished step's stored result.
+- Work handed to an outside provider is an operation. `ctx.operation(..).dispatch`
+  records it before the call and gives the provider an idempotency key and a callback
+  URL; `ctx.wait` parks the Task until the provider's event reaches the callback route
+  that `hosting::operations::operation_callbacks` serves, a status check runs or the
+  deadline passes. The server writes only the provider's calls and its
+  `ProviderEvents` parser, which checks the provider's signature.
+- A server that consumes metered or billed resources declares its usage kinds from a
+  closed enum at startup through `UsageLedger::declare`, each with its FOCUS service
+  category and unit, records an estimate with `ctx.usage()` before the work and the
+  actual usage when the provider reports it. Core's
+  [usage ledger](https://github.com/VeoveoAI/veoveo-core/blob/50e72a3a1895d59b4f1eedd2b50cf947fa5d2e72/platform/usage/DESIGN.md) holds the records.
+- Audit classes are the server's own, `<slug>.<action>`, each mapped to an OCSF class.
+  A record's reason is a code the server defines and its target a URI in the server's
+  own scheme, as core's
+  [audit record contract](https://github.com/VeoveoAI/veoveo-core/blob/50e72a3a1895d59b4f1eedd2b50cf947fa5d2e72/platform/audit/contract/DESIGN.md#outcome-and-reason)
+  describes.
 - The server owns one PostgreSQL schema named after its slug and applies the crate's
   `migrations/` there at startup. Never edit an applied migration; add a new one.
 - Every SQL statement is a `.sql` file beside the code that runs it, run through sqlx's
@@ -25,7 +44,7 @@ These rules apply to this repository and to component repositories created from 
   `.cargo/config.toml` sets `SQLX_OFFLINE`. After changing a query or a migration,
   regenerate the metadata from an empty target directory.
 - Statements and tables follow the server schema rules of veoveo-core's
-  [database design](https://github.com/VeoveoAI/veoveo-core/blob/f685fbfd3d28a477d35f77cee3feacc8787772ac/docs/DATABASE.md),
+  [database design](https://github.com/VeoveoAI/veoveo-core/blob/50e72a3a1895d59b4f1eedd2b50cf947fa5d2e72/docs/DATABASE.md),
   which `tests/database_conformance.rs` checks. A statement binds its tenant, bounds its
   rows and reaches them through an index in a generic plan. A table has a primary key,
   an index whose leading columns are each foreign key's, and a
