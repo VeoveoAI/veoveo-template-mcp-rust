@@ -12,9 +12,9 @@ publish = false
 
 [workspace.dependencies]
 # veoveo-core, pinned to one revision for every core crate.
-veoveo-platform-store = { git = "https://github.com/VeoveoAI/veoveo-core", rev = "435fc1a90d5761f6dca2af05f4cadde324b72428" }
-veoveo-test-fixtures = { git = "https://github.com/VeoveoAI/veoveo-core", rev = "435fc1a90d5761f6dca2af05f4cadde324b72428" }
-veoveo-types = { git = "https://github.com/VeoveoAI/veoveo-core", rev = "435fc1a90d5761f6dca2af05f4cadde324b72428" }
+veoveo-platform-store = { git = "https://github.com/VeoveoAI/veoveo-core", rev = "7a6c210ff1f9ee9f5150c0a5d101afeb98d659da" }
+veoveo-test-fixtures = { git = "https://github.com/VeoveoAI/veoveo-core", rev = "7a6c210ff1f9ee9f5150c0a5d101afeb98d659da" }
+veoveo-types = { git = "https://github.com/VeoveoAI/veoveo-core", rev = "7a6c210ff1f9ee9f5150c0a5d101afeb98d659da" }
 
 serde = { version = "=1.0.229", features = ["derive"] }
 # PostgreSQL 18 through the same sqlx release and features as veoveo-core. `sqlx-toml`
