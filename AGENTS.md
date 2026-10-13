@@ -8,8 +8,16 @@ These rules apply to this repository and to component repositories created from 
   JSON wherever the shape is known.
 - MCP comes from [veoveo-sdk-rust](https://github.com/VeoveoAI/veoveo-sdk-rust): hosting, registration with the Gateway,
   the forwarded identity, permission requirements, the documents and contract
-  resources, subscriptions and the MCP Tasks adapter. Depend on it by Git revision.
-  veoveo-core holds no MCP; take types, the store, Tasks and audit from it.
+  resources, subscriptions, the MCP Tasks adapter and calls to other servers. Depend on
+  it by Git revision. veoveo-core holds no MCP; take types, the store, Tasks and audit
+  from it.
+- A server that calls another server depends on that server's `contract` feature by Git
+  revision, declares the permissions it calls with through
+  `AuthorizationBuilder::uses`, and calls through `ctx.client()` in a handler or
+  `ServerCalls::for_task` in a Task worker, as the SDK's
+  [calls to other servers](https://github.com/VeoveoAI/veoveo-sdk-rust/blob/main/crates/veoveo-sdk-rust/DESIGN.md#calls-to-other-servers)
+  describe. A server whose tools others call publishes each tool's request as a
+  `ToolCall` in its own `contract` feature.
 - The server owns one PostgreSQL schema named after its slug and applies the crate's
   `migrations/` there at startup. Never edit an applied migration; add a new one.
 - Every SQL statement is a `.sql` file beside the code that runs it, run through sqlx's
