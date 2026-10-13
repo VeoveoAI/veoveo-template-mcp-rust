@@ -32,7 +32,7 @@ bound to the tenant, through a first-page and a next-page statement. Every state
 a `.sql` file that sqlx checks at compile time against the migrated schema.
 
 The statements and tables follow the server schema rules of veoveo-core's
-[database design](https://github.com/VeoveoAI/veoveo-core/blob/7a6c210ff1f9ee9f5150c0a5d101afeb98d659da/docs/DATABASE.md):
+[database design](https://github.com/VeoveoAI/veoveo-core/blob/dd7394ee566bf2a325a3eb2715e1645b27a6f0de/docs/DATABASE.md):
 tenant predicates, row bounds, index use under generic plans, and a primary key, an
 index behind every foreign key and a `Retention:` comment on every table.
 `tests/database_conformance.rs` checks them against a fresh database. Tests need the
