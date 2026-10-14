@@ -14,7 +14,6 @@ and gate configuration current.
 | Path | Purpose |
 |---|---|
 | `Dockerfile` | The `dev` environment, the `check` gate, the release `build` and the `runtime` image |
-| `openshell/policy.yaml` | The OpenShell policy for the development environment |
 | `env/profile.d/rust.sh` | Toolchain variables for login shells inside the environment |
 | `rust-toolchain.toml`, `rustfmt.toml`, `clippy.toml` | The pinned toolchain and code rules |
 | `deny.toml` | Dependency licenses, advisories, bans and allowed sources |
@@ -69,8 +68,7 @@ Create the repository from this template and rename the crate to the repository 
 In the `Dockerfile`, set `COMPONENT` and the `ENTRYPOINT` path to that name: the crate,
 binary, image and image title all use the repository name. The server's slug names its
 schema: replace `template` in `server()`, the crate's `sqlx.toml`, its migrations and
-statements, the `Dockerfile`'s `ensure_server` call and the binary path in
-`openshell/policy.yaml`, then regenerate `.sqlx`. Build the
+statements and the `Dockerfile`'s `ensure_server` call, then regenerate `.sqlx`. Build the
 runtime image with its version and source revision:
 
 ```sh
@@ -90,32 +88,29 @@ feature and the nextest `ci` profile. It runs the same way on macOS and Linux.
 
 ## Development environment
 
-Build the `dev` image on the host and create an OpenShell sandbox from it:
-
 ```sh
 docker build --target dev -t <repository>:dev .
-openshell sandbox create --name <sandbox> --from <repository>:dev \
-  --policy openshell/policy.yaml --detach -- sleep infinity
 ```
 
-The policy lets the component reach the installation's PostgreSQL server at
-`host.openshell.internal:5432`. OpenShell pins each policy-listed executable to the
-SHA-256 it first observes, so the component runs from a content-addressed copy under
-`/sandbox/run`.
+An installation from
+[veoveo-template-installation](https://github.com/VeoveoAI/veoveo-template-installation)
+runs this image, under its own layer, as a Compose service that works in the
+installation's Lore repository at `/sandbox/src` and reaches PostgreSQL at
+`vv-postgres.internal:5432`. Add the component to the installation like `vv-mcp-time`:
+a service with its `.internal` alias and Lore token volume, a `vv-lore-tokens` target,
+a `--lore-environment` for the Gateway's Lore clients, and a published port on the edge.
 
-OpenShell limits sandbox names to 19 characters, so sandboxes and other runtime
-identifiers use a short form: `vv-` plus a short kind and the component name. The
-kinds are `srv` for services, `mcp` for MCP servers, `rt` for runtimes, `app`,
-`sdk`, `tpl` for templates, `demo` for showcases and `qual` for qualification suites,
-and repositories without a kind use `vv-<name>`. For example, `veoveo-service-gateway`
-runs as `vv-srv-gateway` and `veoveo-mcp-time` as `vv-mcp-time`. Repositories,
-crates, binaries and images keep their full names.
+Compose services and containers use a short form of the repository name: `vv-` plus a
+short kind and the component name. The kinds are `srv` for services, `mcp` for MCP
+servers, `rt` for runtimes, `app`, `sdk`, `tpl` for templates, `demo` for showcases and
+`qual` for qualification suites, and repositories without a kind use `vv-<name>`. For
+example, `veoveo-service-gateway` runs as `vv-srv-gateway` and `veoveo-mcp-time` as
+`vv-mcp-time`. Repositories, crates, binaries and images keep their full names.
 
-Inside the sandbox, the `sandbox` user owns the Rust toolchain and Cargo home, so
-rustup and Cargo install components, targets and crates as needed. A coding agent on
-the host works on the source through OpenShell SSH: it pushes commits into a working
-tree at `/sandbox/src` that accepts pushes with `receive.denyCurrentBranch=updateInstead`,
-then builds and tests inside the sandbox.
+Inside the environment, the `sandbox` user owns the Rust toolchain and Cargo home, so
+rustup and Cargo install components, targets and crates as needed through the
+installation's proxy. A coding agent works in the environment's Lore working copy,
+pushes its own branch to Lore, and builds and tests inside the environment.
 
 ## License
 
