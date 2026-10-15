@@ -1,16 +1,16 @@
 {
   "db_name": "PostgreSQL",
-  "query": "-- Record one item of a tenant.\nINSERT INTO template.item (tenant, item_key, name)\nVALUES ($1, $2, $3)\nRETURNING item_key AS \"item_key: ItemId\", name\n",
+  "query": "-- A page of a tenant's items after a cursor's key. A separate statement for the first\n-- page keeps this bound an index condition in a cached generic plan.\nSELECT item_id AS \"item_id: ItemId\", name\nFROM template.item\nWHERE tenant = $1 AND item_id > $2\nORDER BY item_id\nLIMIT $3\n",
   "describe": {
     "columns": [
       {
         "ordinal": 0,
-        "name": "item_key: ItemId",
+        "name": "item_id: ItemId",
         "type_info": "Uuid",
         "origin": {
           "Table": {
             "table": "template.item",
-            "name": "item_key"
+            "name": "item_id"
           }
         }
       },
@@ -30,7 +30,7 @@
       "Left": [
         "Uuid",
         "Uuid",
-        "Text"
+        "Int8"
       ]
     },
     "nullable": [
@@ -38,5 +38,5 @@
       false
     ]
   },
-  "hash": "e038b49f65402fb86bfbedd1f18a2819332203bf05b23d99b67cde1a92b277ba"
+  "hash": "5a8d396ff0629c2ddde7971e45d7ecefeef20ab2dec67d3cf2f2a04e210f74fc"
 }

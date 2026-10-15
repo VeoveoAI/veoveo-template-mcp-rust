@@ -1,7 +1,4 @@
-fn main() {
-    println!(
-        "{} {}",
-        veoveo_template_mcp_rust::component(),
-        env!("CARGO_PKG_VERSION")
-    );
+#[tokio::main]
+async fn main() -> anyhow::Result<()> {
+    veoveo_template_mcp_rust::server::run().await
 }

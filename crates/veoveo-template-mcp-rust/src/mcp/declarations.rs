@@ -1,0 +1,45 @@
+//! The server's registration declaration. The server registers it with the Gateway and
+//! advertises the same value in MCP Discover, so both have one source.
+use std::sync::OnceLock;
+
+use veoveo_sdk_rust::{
+    PublicDeployment,
+    registration::{RegistrationDeclaration, ServerEndpoint, ServerVersion},
+    server_contract::McpServerContract,
+};
+
+use super::setup::TemplateContract;
+
+/// The registration the server advertises. Startup sets it from the deployment before
+/// the MCP setup is built; until then Discover advertises no declarations.
+pub static REGISTRATION: OnceLock<RegistrationDeclaration> = OnceLock::new();
+
+/// The server's identity and the URL where the Gateway reaches its MCP endpoint:
+/// `{public_base_url}/template/mcp`.
+pub fn registration(deployment: &PublicDeployment) -> anyhow::Result<RegistrationDeclaration> {
+    let endpoint = deployment.server(TemplateContract::slug().as_str())?;
+    let url = url::Url::parse(&format!("{}/mcp", endpoint.public_url()))?;
+    Ok(RegistrationDeclaration {
+        slug: TemplateContract::slug(),
+        uri_scheme: TemplateContract::scheme(),
+        version: ServerVersion::new(env!("CARGO_PKG_VERSION"))?,
+        endpoint: ServerEndpoint::new(url)?,
+    })
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn the_registered_endpoint_is_the_mounted_mcp_url() {
+        let deployment = PublicDeployment::new("http://vv-tpl-mcp-rust.internal:8810").unwrap();
+        let registration = registration(&deployment).unwrap();
+        assert_eq!(
+            registration.endpoint.url().as_str(),
+            "http://vv-tpl-mcp-rust.internal:8810/template/mcp"
+        );
+        assert_eq!(registration.slug.as_str(), "template");
+        assert_eq!(registration.uri_scheme.as_str(), "template");
+    }
+}

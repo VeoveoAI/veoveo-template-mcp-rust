@@ -1,6 +1,8 @@
 # Agent Instructions
 
-These rules apply to this repository and to component repositories created from it.
+These rules apply to this repository and to component repositories created from it. The
+crate's own rules are in
+[`crates/veoveo-template-mcp-rust/AGENTS.md`](crates/veoveo-template-mcp-rust/AGENTS.md).
 
 - Use upstream runtimes such as PostgreSQL unmodified. Adapt through
   supported configuration.
@@ -31,21 +33,26 @@ These rules apply to this repository and to component repositories created from 
   closed enum at startup through `UsageLedger::declare`, each with its FOCUS service
   category and unit, records an estimate with `ctx.usage()` before the work and the
   actual usage when the provider reports it. Core's
-  [usage ledger](https://github.com/VeoveoAI/veoveo-core/blob/50e72a3a1895d59b4f1eedd2b50cf947fa5d2e72/platform/usage/DESIGN.md) holds the records.
+  [usage ledger](https://github.com/VeoveoAI/veoveo-core/blob/9a6b3ff95469ff19f9ccb513421a57ba6751aa9e/platform/usage/DESIGN.md) holds the records.
 - Audit classes are the server's own, `<slug>.<action>`, each mapped to an OCSF class.
   A record's reason is a code the server defines and its target a URI in the server's
   own scheme, as core's
-  [audit record contract](https://github.com/VeoveoAI/veoveo-core/blob/50e72a3a1895d59b4f1eedd2b50cf947fa5d2e72/platform/audit/contract/DESIGN.md#outcome-and-reason)
+  [audit record contract](https://github.com/VeoveoAI/veoveo-core/blob/9a6b3ff95469ff19f9ccb513421a57ba6751aa9e/platform/audit/contract/DESIGN.md#outcome-and-reason)
   describes.
 - The server owns one PostgreSQL schema named after its slug and applies the crate's
   `migrations/` there at startup. Never edit an applied migration; add a new one.
+- Server SQL touches only the server's own schema. It never reads, joins or references
+  core's schemas (`tasks`, `usage`, `audit`, `identity`, `kernel`): core's state comes
+  only through the SDK and core's runtime API. `tests/sql_confinement.rs` checks it.
+  When the API lacks what the server needs, report the gap to core and the SDK instead
+  of working around it in the server.
 - Every SQL statement is a `.sql` file beside the code that runs it, run through sqlx's
   checked `query_file*!` macros. Builds read the committed `.sqlx` metadata, because
   `.cargo/config.toml` sets `SQLX_OFFLINE`. After changing a query or a migration,
   regenerate the metadata from an empty target directory.
 - Statements and tables follow the server schema rules of veoveo-core's
-  [database design](https://github.com/VeoveoAI/veoveo-core/blob/50e72a3a1895d59b4f1eedd2b50cf947fa5d2e72/docs/DATABASE.md),
-  which `tests/database_conformance.rs` checks. A statement binds its tenant, bounds its
+  [database design](https://github.com/VeoveoAI/veoveo-core/blob/9a6b3ff95469ff19f9ccb513421a57ba6751aa9e/docs/DATABASE.md),
+  which `crates/veoveo-template-mcp-rust/tests/database_conformance.rs` checks. A statement binds its tenant, bounds its
   rows and reaches them through an index in a generic plan. A table has a primary key,
   an index whose leading columns are each foreign key's, and a
   `COMMENT ON TABLE … IS 'Retention: …'`. A statement that cannot comply carries a

@@ -71,9 +71,14 @@ FROM debian:trixie-slim@sha256:a29215f6a35e51e22adffa17f89e9d2ef06214e64a2bad10d
 ARG COMPONENT
 ARG VERSION
 ARG REVISION
-RUN useradd --system --uid 10001 --no-create-home "${COMPONENT}"
+# The registration key persists under the key directory; mount a volume there to keep the
+# server's namespace across container restarts.
+RUN useradd --system --uid 10001 --no-create-home "${COMPONENT}" \
+    && mkdir -p /var/lib/veoveo/template/keys \
+    && chown -R "${COMPONENT}:${COMPONENT}" /var/lib/veoveo/template
 COPY --from=build "/home/sandbox/${COMPONENT}" "/usr/local/bin/${COMPONENT}"
 USER ${COMPONENT}
+EXPOSE 8810
 # The exec form cannot expand build arguments, so the binary path is fixed here.
 ENTRYPOINT ["/usr/local/bin/veoveo-template-mcp-rust"]
 LABEL org.opencontainers.image.title="${COMPONENT}" \
