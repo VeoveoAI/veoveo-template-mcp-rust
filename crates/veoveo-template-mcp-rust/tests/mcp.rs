@@ -1,13 +1,13 @@
-//! The MCP surface through the SDK's in-process Gateway against a migrated database:
+//! The MCP surface through the SDK's in-process Hub against a migrated database:
 //! discovery, permission refusals, `create_item` and the reads of its product. The test
 //! user is `user-1` of `tenant-a`. Requires the PostgreSQL 18 server programs on `PATH`.
 use std::time::Duration;
 
 use serde_json::{Value, json};
 use veoveo_fixtures::store::TestDb;
-use veoveo_sdk_rust::hosting::{
+use veoveo_hub_sdk::hosting::{
     Hosted,
-    testing::{self, TestGateway},
+    testing::{self, TestHub},
 };
 use veoveo_template_mcp_rust::{
     contract::TemplatePermission::{self, ItemsRead, ItemsWrite},
@@ -16,10 +16,10 @@ use veoveo_template_mcp_rust::{
     store::ItemStore,
 };
 
-/// A Gateway that grants `granted` in front of a server on `db`.
-async fn gateway(db: &TestDb, granted: &[TemplatePermission]) -> TestGateway {
+/// A Hub that grants `granted` in front of a server on `db`.
+async fn hub(db: &TestDb, granted: &[TemplatePermission]) -> TestHub {
     let items = ItemStore::new(db.server_store(&server()).await);
-    TestGateway::new(
+    TestHub::new(
         testing::for_domain::<TemplateMcp>()
             .handler(move || Hosted::new(TemplateMcp::new(items.clone())))
             .build(),
@@ -43,7 +43,7 @@ async fn items_are_created_read_and_listed_with_their_permissions() {
     tokio::time::timeout(Duration::from_secs(60), async {
         let db = TestDb::new().await;
         db.migrate_server(&server(), migrator()).await;
-        let full = gateway(&db, &[ItemsRead, ItemsWrite]).await;
+        let full = hub(&db, &[ItemsRead, ItemsWrite]).await;
 
         let tools = full.rpc("tools/list", json!({})).await;
         let names: Vec<&str> = tools["result"]["tools"]
@@ -91,7 +91,7 @@ async fn items_are_created_read_and_listed_with_their_permissions() {
 
         // Reading without the write permission cannot create, and the refusal names the
         // missing permission.
-        let reader = gateway(&db, &[ItemsRead]).await;
+        let reader = hub(&db, &[ItemsRead]).await;
         let denied = reader
             .rpc(
                 "tools/call",

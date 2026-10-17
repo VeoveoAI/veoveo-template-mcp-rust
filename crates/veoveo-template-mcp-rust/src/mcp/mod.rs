@@ -13,8 +13,8 @@ use rmcp::{
     service::RequestContext,
     tool, tool_router,
 };
-use veoveo_sdk_rust::{
-    GatewayInternalIdentity,
+use veoveo_hub_sdk::{
+    HubInternalIdentity,
     hosting::{DomainAddress, DomainRead, DomainServer, product_result},
     server_contract::McpServerSetup,
 };
@@ -109,7 +109,7 @@ impl DomainServer for TemplateMcp {
 }
 
 /// The stored tenant of the caller's items.
-fn tenant(identity: &GatewayInternalIdentity) -> Result<veoveo_store::TenantId, McpError> {
+fn tenant(identity: &HubInternalIdentity) -> Result<veoveo_store::TenantId, McpError> {
     stored_tenant(&identity.authority.tenant).map_err(|_| {
         McpError::invalid_request("the forwarded identity names no stored tenant", None)
     })

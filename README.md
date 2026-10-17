@@ -2,8 +2,8 @@
 
 This template holds the starting files for a Veoveo MCP server written in Rust. A new
 component repository copies them once and owns them from then on. A server serves MCP
-through [veoveo-sdk-rust](https://github.com/VeoveoAI/veoveo-sdk-rust), which registers it with the Gateway and verifies the
-identity the Gateway forwards, and stores its state through
+through [veoveo-hub-sdk](https://github.com/VeoveoAI/veoveo-hub-sdk), which registers it with the Hub and verifies the
+identity the Hub forwards, and stores its state through
 [veoveo-core](https://github.com/VeoveoAI/veoveo-core). Components couple
 only through contracts, conformance suites and the `rust-version` of the crates they
 compile from other repositories, so each repository keeps its own image, toolchain
@@ -25,7 +25,7 @@ and gate configuration current.
 
 ## Server
 
-The crate is a working MCP server hosted through veoveo-sdk-rust. It keeps a list of
+The crate is a working MCP server hosted through veoveo-hub-sdk. It keeps a list of
 named items for each tenant: the `create_item` tool records one and returns its address
 as `resultUri`, `template://item/{item_id}` reads it, and `template://items` pages
 through the tenant's items. The crate's [`DESIGN.md`](crates/veoveo-template-mcp-rust/DESIGN.md)
@@ -38,13 +38,13 @@ under `template://docs`.
 | `src/contract/` | The `contract` feature: `ItemId` through the shared `id` declaration, `TemplateResource` through `resource_address`, the `Vocabulary` scope and permissions, and the tool's request and result |
 | `src/mcp/` | The tool router, resource reads, the requirement table that both the registration and every handler check, the checked setup with `server_docs!`, and the registration declaration |
 | `src/store/` | The `template` schema's statements and the keyset listing |
-| `src/server/` | Configuration, registration with the Gateway, the database login it issues, the process instance and serving |
+| `src/server/` | Configuration, registration with the Hub, the database login it issues, the process instance and serving |
 
-At startup the server registers with the Gateway, connects with the database login the
-Gateway issues, starts a process instance, applies its migrations and serves MCP at
+At startup the server registers with the Hub, connects with the database login the
+Hub issues, starts a process instance, applies its migrations and serves MCP at
 `{public_base_url}/template/mcp`. Stopping deletes the registration.
 
-`tests/mcp.rs` calls the server through the SDK's in-process test Gateway, with the
+`tests/mcp.rs` calls the server through the SDK's in-process test Hub, with the
 permissions each case grants, against a migrated database.
 
 ## Database
@@ -80,7 +80,7 @@ The template's crate runs no Tasks. A server that does runs them through the SDK
 `TaskWorker`, where `ctx.step` keeps a restarted Task from repeating finished work and
 `ctx.operation` with `ctx.wait` parks a Task on an outside provider until the
 provider's event reaches the server's callback route; the SDK's
-[Task work](https://github.com/VeoveoAI/veoveo-sdk-rust/blob/main/crates/veoveo-sdk-rust/DESIGN.md#task-work) describes both. Metered or billed work records an estimate
+[Task work](https://github.com/VeoveoAI/veoveo-hub-sdk/blob/main/crates/veoveo-hub-sdk/DESIGN.md#task-work) describes both. Metered or billed work records an estimate
 and the actual usage through `ctx.usage()` against usage kinds the server declares, in
 core's [usage ledger](https://github.com/VeoveoAI/veoveo-core/blob/9a6b3ff95469ff19f9ccb513421a57ba6751aa9e/platform/usage/DESIGN.md). Audit classes, reason codes and
 target URIs are the server's own, under its slug, as core's
@@ -132,13 +132,13 @@ runs this image, under its own layer, as a Compose service that works in the
 installation's Lore repository at `/sandbox/src` and reaches PostgreSQL at
 `vv-postgres.internal:5432`. Add the component to the installation like `vv-mcp-time`:
 a service with its `.internal` alias and Lore token volume, a `vv-lore-tokens` target,
-a `--lore-environment` for the Gateway's Lore clients, and a published port on the edge.
+a `--lore-environment` for the Hub's Lore clients, and a published port on the edge.
 
 Compose services and containers use a short form of the repository name: `vv-` plus a
 short kind and the component name. The kinds are `srv` for services, `mcp` for MCP
 servers, `rt` for runtimes, `app`, `sdk`, `tpl` for templates, `demo` for showcases and
 `qual` for qualification suites, and repositories without a kind use `vv-<name>`. For
-example, `veoveo-service-gateway` runs as `vv-srv-gateway` and `veoveo-mcp-time` as
+example, `veoveo-hub` runs as `vv-srv-hub` and `veoveo-mcp-time` as
 `vv-mcp-time`. Repositories, crates, binaries and images keep their full names.
 
 Inside the environment, the `sandbox` user owns the Rust toolchain and Cargo home, so

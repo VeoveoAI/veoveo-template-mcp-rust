@@ -32,7 +32,7 @@ replaces it with its own.
   `PATH`, as the `dev` image provides them.
 - `cargo test -p veoveo-template-mcp-rust --no-default-features --features contract`
   checks the contract alone.
-- `tests/mcp.rs` calls the server through the SDK's test Gateway against a migrated
+- `tests/mcp.rs` calls the server through the SDK's test Hub against a migrated
   database.
 - `tests/database_conformance.rs` runs core's database checks over every statement and
   the `template` schema.

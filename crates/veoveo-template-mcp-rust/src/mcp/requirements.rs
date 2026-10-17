@@ -1,12 +1,12 @@
 //! The one table that says which permission each of the server's targets requires. It
-//! builds the `ai.veoveo/authorization` declaration the Gateway evaluates, and every
-//! handler checks the same declaration against the permissions the Gateway granted.
+//! builds the `ai.veoveo/authorization` declaration the Hub evaluates, and every
+//! handler checks the same declaration against the permissions the Hub granted.
 use std::sync::LazyLock;
 
 use rmcp::{ErrorData as McpError, RoleServer, service::RequestContext};
-use veoveo_sdk_rust::{
-    GatewayInternalIdentity, LocalToolName,
-    hosting::gateway_identity,
+use veoveo_hub_sdk::{
+    HubInternalIdentity, LocalToolName,
+    hosting::hub_identity,
     registration::{
         AuthorizationBuilder, AuthorizationDeclaration, DeclarationError, RequirementTarget,
     },
@@ -35,7 +35,7 @@ pub(crate) const RESOURCE_TEMPLATES: &[(&str, TemplatePermission)] = &[
     ("template://item/{item_id}", ItemsRead),
 ];
 
-/// The server's authorization declaration, checked against its namespace as the Gateway
+/// The server's authorization declaration, checked against its namespace as the Hub
 /// checks it.
 pub static AUTHORIZATION: LazyLock<AuthorizationDeclaration> = LazyLock::new(|| {
     declaration().expect("the template's requirement table forms a valid declaration")
@@ -75,12 +75,12 @@ pub(crate) enum Target<'a> {
     Resource(&'a str),
 }
 
-/// The verified Gateway identity, when it grants the permission `target` requires.
+/// The verified Hub identity, when it grants the permission `target` requires.
 pub(crate) fn require(
     context: &RequestContext<RoleServer>,
     target: Target<'_>,
-) -> Result<GatewayInternalIdentity, McpError> {
-    let identity = gateway_identity(context)?;
+) -> Result<HubInternalIdentity, McpError> {
+    let identity = hub_identity(context)?;
     let permission = required(target)?;
     identity.grants(&permission).then_some(identity).ok_or_else(|| {
         McpError::invalid_request(
@@ -176,6 +176,6 @@ mod tests {
     #[test]
     fn tool_annotations_agree_with_the_declaration() {
         let tools = super::super::TemplateMcp::tools().list_all();
-        veoveo_sdk_rust::registration::mcp::check_tool_annotations(&AUTHORIZATION, &tools).unwrap();
+        veoveo_hub_sdk::registration::mcp::check_tool_annotations(&AUTHORIZATION, &tools).unwrap();
     }
 }

@@ -1,4 +1,4 @@
-//! The server's configuration. Every flag has its environment variable. The Gateway
+//! The server's configuration. Every flag has its environment variable. The Hub
 //! issues the database login and the access-token trust when the server registers, so
 //! neither is configured here.
 use std::path::PathBuf;
@@ -6,20 +6,20 @@ use std::path::PathBuf;
 use clap::Parser;
 use secrecy::SecretString;
 use url::Url;
-use veoveo_sdk_rust::{PublicDeployment, parse_allowed_host_authority};
+use veoveo_hub_sdk::{PublicDeployment, parse_allowed_host_authority};
 
 #[derive(Parser)]
 #[command(name = "veoveo-template-mcp-rust", about = "Template MCP server")]
 pub(super) struct Args {
     #[arg(long, env = "VEOVEO_PORT", default_value_t = 8810)]
     pub port: u16,
-    /// The origin where the Gateway reaches the server; it serves MCP at
+    /// The origin where the Hub reaches the server; it serves MCP at
     /// `{public_base_url}/template/mcp` and registers that URL.
     #[arg(long, env = "VEOVEO_PUBLIC_BASE_URL")]
     pub public_base_url: String,
-    /// The Gateway's RFC 8414 issuer; registration discovers its endpoint from there.
-    #[arg(long, env = "VEOVEO_GATEWAY_ISSUER")]
-    pub gateway_issuer: Url,
+    /// The Hub's RFC 8414 issuer; registration discovers its endpoint from there.
+    #[arg(long, env = "VEOVEO_HUB_ISSUER")]
+    pub hub_issuer: Url,
     /// The installation's registration secret, or the placeholder the installation's edge
     /// replaces.
     #[arg(
@@ -72,7 +72,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn the_gateway_and_the_secret_are_required() {
+    fn the_hub_and_the_secret_are_required() {
         let base = [
             "veoveo-template-mcp-rust",
             "--public-base-url",
@@ -80,8 +80,8 @@ mod tests {
         ];
         assert!(Args::try_parse_from(base).is_err());
         let args = Args::try_parse_from(base.into_iter().chain([
-            "--gateway-issuer",
-            "http://vv-gateway.internal:8080",
+            "--hub-issuer",
+            "http://vv-hub.internal:8080",
             "--registration-secret",
             "placeholder",
             "--allowed-host",

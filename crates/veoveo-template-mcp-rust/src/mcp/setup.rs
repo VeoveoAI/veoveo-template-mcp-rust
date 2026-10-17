@@ -3,7 +3,7 @@
 use std::sync::LazyLock;
 
 use rmcp::model::{Resource, ResourceTemplate, ServerCapabilities, ServerConfig};
-use veoveo_sdk_rust::{
+use veoveo_hub_sdk::{
     ServerSlug,
     docs::ServerDocs,
     server_contract::{
@@ -17,7 +17,7 @@ use crate::contract::{TemplateDocument, TemplateResource, TemplateScope};
 /// The crate documents embedded at build time and served under `template://docs`,
 /// `template://docs/{doc_id}`, `template://contract` and the admin document routes.
 pub(crate) static SERVER_DOCS: LazyLock<ServerDocs> =
-    LazyLock::new(|| veoveo_sdk_rust::server_docs!("template"));
+    LazyLock::new(|| veoveo_hub_sdk::server_docs!("template"));
 
 pub struct TemplateContract;
 
@@ -140,7 +140,7 @@ fn server_config() -> ServerConfig {
         .enable_completions()
         .build();
     if let Some(registration) = super::declarations::REGISTRATION.get() {
-        veoveo_sdk_rust::registration::mcp::advertise(
+        veoveo_hub_sdk::registration::mcp::advertise(
             &mut capabilities,
             registration,
             &super::requirements::AUTHORIZATION,

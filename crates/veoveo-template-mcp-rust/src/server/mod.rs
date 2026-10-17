@@ -1,4 +1,4 @@
-//! The hosted process: register with the Gateway, connect with the registration's
+//! The hosted process: register with the Hub, connect with the registration's
 //! database login, hold a process instance, migrate, then serve MCP until SIGTERM or
 //! Ctrl-C or until the instance loses its lock. Stopping deletes the registration.
 mod config;
@@ -8,7 +8,7 @@ use std::net::SocketAddr;
 
 use anyhow::{Context, Result};
 use clap::Parser;
-use veoveo_sdk_rust::{
+use veoveo_hub_sdk::{
     PublicDeployment, TelemetryGuard,
     hosting::{Hosted, HostedServer},
     init_server_telemetry,
@@ -64,7 +64,7 @@ async fn serve(
 ) -> Result<()> {
     let grant = registration
         .database()
-        .context("the Gateway issued no database login")?;
+        .context("the Hub issued no database login")?;
     let store = PlatformStore::connect(
         StoreConfig::builder(grant.url.as_str(), grant.password.clone())
             .username(grant.username.as_str())
