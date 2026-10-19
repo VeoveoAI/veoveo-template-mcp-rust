@@ -63,7 +63,12 @@ async fn items_are_created_read_and_listed_with_their_permissions() {
         let product = &created["result"]["structuredContent"];
         let result_uri = product["resultUri"].as_str().expect("resultUri").to_owned();
         assert!(result_uri.starts_with("template://item/"), "{created}");
-        assert_eq!(product["item"]["name"], "Quarterly report");
+        assert_eq!(product["metadata"]["item"]["name"], "Quarterly report");
+        assert_eq!(created["result"]["content"][0]["uri"], result_uri);
+        let text: Value =
+            serde_json::from_str(created["result"]["content"][1]["text"].as_str().unwrap())
+                .unwrap();
+        assert_eq!(&text, product);
 
         let item = read_json(&full.rpc("resources/read", json!({"uri": result_uri})).await);
         assert_eq!(item["name"], "Quarterly report");
@@ -76,6 +81,49 @@ async fn items_are_created_read_and_listed_with_their_permissions() {
         );
         assert_eq!(listing["items"].as_array().unwrap().len(), 1);
         assert_eq!(listing["nextCursor"], Value::Null);
+
+        // The resource adapter owns limit/cursor selection and follows its canonical template.
+        for name in ["second", "third"] {
+            let answer = full
+                .rpc(
+                    "tools/call",
+                    json!({"name":"create_item","arguments":{"name":name}}),
+                )
+                .await;
+            assert_eq!(answer["result"]["isError"], false, "{answer}");
+        }
+        let first = read_json(
+            &full
+                .rpc("resources/read", json!({"uri":"template://items?limit=2"}))
+                .await,
+        );
+        assert_eq!(first["items"].as_array().unwrap().len(), 2);
+        let mut uri = url::Url::parse("template://items").unwrap();
+        uri.query_pairs_mut()
+            .append_pair("limit", "2")
+            .append_pair("cursor", first["nextCursor"].as_str().unwrap());
+        let second = read_json(
+            &full
+                .rpc("resources/read", json!({"uri":uri.as_str()}))
+                .await,
+        );
+        assert_eq!(second["items"].as_array().unwrap().len(), 1);
+        assert!(second["nextCursor"].is_null());
+        let ids: Vec<_> = first["items"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .chain(second["items"].as_array().unwrap())
+            .map(|item| item["itemId"].as_str().unwrap())
+            .collect();
+        assert!(ids.windows(2).all(|pair| pair[0] < pair[1]));
+        let refused = full
+            .rpc(
+                "resources/read",
+                json!({"uri":"template://items?cursor=a&cursor=b"}),
+            )
+            .await;
+        assert!(refused["error"].is_object(), "{refused}");
 
         // A name the schema refuses reaches no handler.
         let refused = full
@@ -107,7 +155,7 @@ async fn items_are_created_read_and_listed_with_their_permissions() {
                 .rpc("resources/read", json!({"uri": "template://items"}))
                 .await,
         );
-        assert_eq!(listing["items"].as_array().unwrap().len(), 1);
+        assert_eq!(listing["items"].as_array().unwrap().len(), 3);
 
         // An unknown item reads as missing.
         let missing = reader

@@ -9,8 +9,6 @@ use veoveo_types::{IdFailure, IdMetadata, IdProfile, IdProfileSpec, IdSchema, Uu
 
 /// The most characters an item name holds.
 pub const MAX_ITEM_NAME_CHARS: usize = 128;
-/// The most bytes a listing cursor holds on the wire.
-pub const MAX_CURSOR_BYTES: usize = 4096;
 
 /// A value that failed admission as one of the server's identities or values.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, thiserror::Error)]
@@ -19,8 +17,6 @@ pub enum TemplateIdError {
     Item,
     #[error("an item name is 1 to 128 characters without control characters or surrounding spaces")]
     ItemName,
-    #[error("a cursor is 1 to 4096 base64url characters from the previous page")]
-    Cursor,
 }
 
 /// An item: a UUIDv7 the server generates when it creates the item, so key order is
@@ -104,65 +100,6 @@ impl JsonSchema for ItemName {
     }
 }
 
-/// An opaque listing cursor as it travels in an address: 1 to 4096 base64url
-/// characters. The server admits it against the listing and tenant that issued it; this
-/// type checks only its spelling.
-#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
-#[serde(try_from = "String", into = "String")]
-pub struct ListCursor(String);
-
-impl ListCursor {
-    pub fn parse(value: impl Into<String>) -> Result<Self, TemplateIdError> {
-        let value = value.into();
-        let spelled = !value.is_empty()
-            && value.len() <= MAX_CURSOR_BYTES
-            && value
-                .bytes()
-                .all(|byte| byte.is_ascii_alphanumeric() || matches!(byte, b'-' | b'_'));
-        spelled
-            .then_some(Self(value))
-            .ok_or(TemplateIdError::Cursor)
-    }
-
-    pub fn as_str(&self) -> &str {
-        &self.0
-    }
-}
-
-impl fmt::Display for ListCursor {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.write_str(&self.0)
-    }
-}
-
-impl TryFrom<String> for ListCursor {
-    type Error = TemplateIdError;
-    fn try_from(value: String) -> Result<Self, Self::Error> {
-        Self::parse(value)
-    }
-}
-
-impl From<ListCursor> for String {
-    fn from(value: ListCursor) -> Self {
-        value.0
-    }
-}
-
-impl JsonSchema for ListCursor {
-    fn schema_name() -> Cow<'static, str> {
-        "ListCursor".into()
-    }
-    fn json_schema(_: &mut SchemaGenerator) -> Schema {
-        json_schema!({
-            "type": "string",
-            "minLength": 1,
-            "maxLength": MAX_CURSOR_BYTES,
-            "pattern": "^[A-Za-z0-9_-]+$",
-            "description": "An opaque cursor from the previous page of the same listing."
-        })
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -204,14 +141,6 @@ mod tests {
                 Err(TemplateIdError::ItemName),
                 "{name:?}"
             );
-        }
-    }
-
-    #[test]
-    fn cursors_check_their_spelling_only() {
-        assert!(ListCursor::parse("eyJh-_0").is_ok());
-        for cursor in ["", "a=b", "a+b", "a b"] {
-            assert_eq!(ListCursor::parse(cursor), Err(TemplateIdError::Cursor));
         }
     }
 }

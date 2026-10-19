@@ -44,8 +44,8 @@ The server answers these questions for a caller:
 
 | Surface | Name | Permission | Result |
 |---|---|---|---|
-| Tool | `create_item` | `template.items.write` | `CreatedItem`, whose `resultUri` is the new item's address |
-| Resource | `template://items{?cursor}` | `template.items.read` | `ItemListing`: up to 100 items and the next page's cursor |
+| Tool | `create_item` | `template.items.write` | `Product<CreatedItem>`, whose `resultUri` is the new item's address |
+| Resource | `template://items{?limit,cursor}` | `template.items.read` | `Page<Items>`: up to 100 items and the next page's cursor |
 | Resource | `template://item/{item_id}` | `template.items.read` | `ItemView` |
 | Resource | `template://docs`, `template://docs/{doc_id}`, `template://contract` | `template.items.read` | The embedded documents and the contract declaration |
 
@@ -59,7 +59,7 @@ another tenant reads as missing.
 
 | Feature | Holds | Depends on |
 |---|---|---|
-| `contract` | `ItemId`, `ItemName`, `ListCursor`, `TemplateResource`, `TemplatePermission`, the tool request and the results | `veoveo-types`, the SDK's `contract` feature, Serde and Schemars |
+| `contract` | `ItemId`, `ItemName`, `Items`, `TemplateResource`, `TemplatePermission`, the tool request and the results | `veoveo-types`, the SDK's `contract` feature, Serde and Schemars |
 | `server` (default) | The hosted server, the item store and the binary | The SDK's `server` feature, core's store, sqlx and rmcp |
 
 ### Modules
@@ -67,7 +67,7 @@ another tenant reads as missing.
 | Module | Responsibility |
 |---|---|
 | `contract` | The public types a consumer compiles against |
-| `mcp` | The tool router, resource reads, the requirement table, the checked setup and the registration declaration |
+| `mcp` | The typed ready routes, resource readers, checked setup and registration declaration |
 | `store` | The `template` schema's statements and the keyset listing |
 | `server` | Configuration, registration with the Hub, the database connection, the process instance and serving |
 
@@ -89,14 +89,29 @@ registration.
 
 Each statement binds the tenant. The listing has a first-page statement and an
 after-cursor statement, both bounded by the page size plus one row of lookahead, and a
-cursor parses only for the listing and tenant that issued it.
+cursor is admitted only for the listing, tenant, filters and limit that issued it.
+`Pager<Items>` admits the token, supplies the SQL seek and fetch bound, checks the
+unique UUIDv7 order and owns lookahead/continuation construction. Responses use
+`{items, limit, nextCursor}`; the terminal token is null. Tokens are opaque to clients
+and bounded to 4096 bytes. This is a live keyset: unchanged data is visited once in
+order, while concurrent insertion after the seek may appear in the remaining walk.
+Every request uses current tenant and route admission; tokens grant no access.
+
+`ReadCollection<ReadItems>` owns resource URI limit/cursor encoding and parsing; its
+owner template is `template://items`, and the SDK adds the optional paging query
+expression for discovery and authorization. The route builder requires a typed
+reader, policy and cache selection. `create_item` is declared by the contract-side
+`tool` attribute, and both resource readers use thin attributes over ordinary public
+traits. The product constructor owns the canonical address; `CreatedItem` is only
+`{format, item}` metadata. The SDK serializes `{resultUri, metadata}`, adds its link
+and mirrors the complete structured value as JSON text.
 
 ## Qualification
 
 | Test | Holds |
 |---|---|
-| `src/contract` unit tests | Identity, name and cursor admission and the address round trips |
-| `src/mcp` unit tests | The requirement table against the tool list, the tool annotations and concrete addresses |
+| `src/contract` unit tests | Identity and name admission and typed address round trips |
+| `src/mcp` unit tests | Ready route and embedded document construction |
 | `tests/items.rs` | Paging in key order and tenant-bound cursors against a migrated database |
 | `tests/mcp.rs` | Discovery, permission refusals, `create_item`, the item read and the listing through the SDK's test Hub |
 | `tests/database_conformance.rs` | Core's server schema rules over every statement and the schema |

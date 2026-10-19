@@ -1,141 +1,98 @@
-//! The server's MCP surface. Each tool and read checks its permission against the
-//! requirement table, and every item belongs to the caller's tenant from the forwarded
-//! identity.
+//! One typed route table binds requests, outputs, discovery and current permissions.
 mod declarations;
 mod requirements;
 mod resources;
 mod setup;
 
-use rmcp::{
-    ErrorData as McpError, RoleServer,
-    handler::server::{router::tool::ToolRouter, wrapper::Parameters},
-    model::{CallToolResult, ReadResourceRequestParams, Resource},
-    service::RequestContext,
-    tool, tool_router,
+use crate::{
+    contract::{CreateItemRequest, CreatedItem, ITEM_FORMAT, ItemView, TemplatePermission},
+    store::{ItemStore, ItemsError, stored_tenant},
 };
+use rmcp::{ErrorData as McpError, RoleServer, service::RequestContext};
+use std::sync::LazyLock;
 use veoveo_hub_sdk::{
     HubInternalIdentity,
-    hosting::{DomainAddress, DomainRead, DomainServer, product_result},
+    definition::Product,
+    hosting::{DomainServer, RoutePolicy, Routes, hub_identity},
     server_contract::McpServerSetup,
-};
-
-use crate::{
-    contract::{CreateItemRequest, CreatedItem, ITEM_FORMAT, ItemView, TemplateResource},
-    store::{Item, ItemStore, ItemsError, stored_tenant},
 };
 
 pub use declarations::{REGISTRATION, registration};
 pub use requirements::AUTHORIZATION;
+use setup::SERVER_SETUP;
 pub use setup::TemplateContract;
 
-use requirements::{Target, require};
-use setup::SERVER_SETUP;
-
-/// Build and check the MCP setup, so a bad declaration stops startup.
 pub fn force_setup() {
-    std::sync::LazyLock::force(&SERVER_SETUP);
+    LazyLock::force(&SERVER_SETUP);
 }
 
 #[derive(Clone)]
 pub struct TemplateMcp {
     items: ItemStore,
-    tool_router: ToolRouter<TemplateMcp>,
 }
-
-#[tool_router]
 impl TemplateMcp {
     pub fn new(items: ItemStore) -> Self {
-        Self {
-            items,
-            tool_router: Self::tools(),
-        }
+        Self { items }
     }
-
-    /// Every tool the server serves.
-    pub(crate) fn tools() -> ToolRouter<Self> {
-        Self::tool_router()
-    }
-
-    #[tool(
-        title = "Create an item",
-        description = "Create an item in your tenant. The result's `resultUri` is the item's address, `template://item/{item_id}`; list your items at `template://items`.",
-        output_schema = rmcp::handler::server::tool::schema_for_type::<CreatedItem>(),
-        annotations(read_only_hint = false, destructive_hint = false, idempotent_hint = false, open_world_hint = false)
-    )]
     async fn create_item(
         &self,
-        Parameters(request): Parameters<CreateItemRequest>,
+        request: CreateItemRequest,
         context: RequestContext<RoleServer>,
-    ) -> Result<CallToolResult, McpError> {
-        let identity = require(&context, Target::Tool("create_item"))?;
+    ) -> Result<Product<CreatedItem>, McpError> {
+        let identity = hub_identity(&context)?;
         let item = self
             .items
             .create(tenant(&identity)?, &request.name)
             .await
             .map_err(items_error)?;
-        let view = view(item);
-        let link = Resource::new(view.item_uri.to_string(), view.name.as_str());
-        product_result(
-            format!("Created item {}", view.name),
-            link,
-            &CreatedItem {
+        let view = ItemView::from(item);
+        let address = view.item_uri.clone();
+        Product::new(
+            &address,
+            CreatedItem {
                 format: ITEM_FORMAT.to_owned(),
-                result_uri: view.item_uri.clone(),
                 item: view,
             },
         )
+        .map_err(|_| McpError::internal_error("item product construction failed", None))
     }
 }
 
+static ROUTES: LazyLock<Routes<TemplateMcp>> = LazyLock::new(|| {
+    let routes = Routes::<TemplateMcp>::builder(RoutePolicy::permission(TemplatePermission::ItemsRead).expect("Template permission"))
+        .tool::<CreateItemRequest, _, _>(
+            "Create an item in your tenant. The product's `resultUri` is its canonical address; list your items at `template://items`.",
+            RoutePolicy::permission(TemplatePermission::ItemsWrite).expect("Template permission"),
+            |domain, request, context| async move { domain.create_item(request, context).await.map_err(Into::into) },
+        );
+    resources::register(routes).build()
+});
 impl DomainServer for TemplateMcp {
     type Contract = TemplateContract;
-
     fn setup() -> &'static McpServerSetup<TemplateContract> {
         &SERVER_SETUP
     }
-
-    fn tool_router(&self) -> &ToolRouter<Self> {
-        &self.tool_router
-    }
-
-    async fn read(
-        &self,
-        address: DomainAddress<TemplateContract>,
-        request: &ReadResourceRequestParams,
-        context: &RequestContext<RoleServer>,
-    ) -> Result<DomainRead, McpError> {
-        resources::read(&self.items, address, request, context).await
+    fn routes() -> &'static Routes<Self> {
+        &ROUTES
     }
 }
 
-/// The stored tenant of the caller's items.
 fn tenant(identity: &HubInternalIdentity) -> Result<veoveo_store::TenantId, McpError> {
     stored_tenant(&identity.authority.tenant).map_err(|_| {
         McpError::invalid_request("the forwarded identity names no stored tenant", None)
     })
 }
-
-/// An item as reads and results return it.
-fn view(item: Item) -> ItemView {
-    ItemView {
-        item_uri: TemplateResource::Item(item.item_id),
-        item_id: item.item_id,
-        name: item.name,
-    }
-}
-
-/// A refusal names its rule; a failure of the database is logged and reported without
-/// detail.
 fn items_error(error: ItemsError) -> McpError {
     match error {
-        ItemsError::Cursor(_) => McpError::invalid_params(error.to_string(), None),
-        failure @ (ItemsError::Corrupt(_) | ItemsError::Database(_)) => {
+        ItemsError::Paging(
+            veoveo_types::PagingError::Cursor(_) | veoveo_types::PagingError::Limit,
+        ) => McpError::invalid_params(error.to_string(), None),
+        failure => {
             tracing::error!(%failure, "a template request failed");
             McpError::internal_error("the server could not complete the request", None)
         }
     }
 }
-
 #[cfg(test)]
 mod tests {
     #[test]

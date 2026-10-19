@@ -3,12 +3,14 @@
 use std::time::Duration;
 
 use veoveo_fixtures::store::TestDb;
+use veoveo_hub_sdk::definition::{CollectionRequest, NoFilters};
 use veoveo_store::deterministic_tenant_id;
 use veoveo_template_mcp_rust::{
-    contract::{ItemId, ItemName, ListCursor},
+    contract::{ItemId, ItemName, ItemView, Items},
     migrator, server,
-    store::{ItemPageSize, ItemStore, ItemsError},
+    store::{ItemStore, ItemsError},
 };
+use veoveo_types::{PageSize, PagingError};
 
 #[tokio::test]
 async fn items_page_in_key_order_and_cursors_stay_with_their_tenant() {
@@ -29,18 +31,30 @@ async fn items_page_in_key_order_and_cursors_stay_with_their_tenant() {
             .unwrap();
 
         // Three items page as two and one, and the last page has no cursor.
-        let two = ItemPageSize::new(2).unwrap();
-        let first = items.page(tenant, None, two).await.unwrap();
-        assert_eq!(first.items, created[..2]);
-        let next = ListCursor::parse(first.next.expect("a third item follows").as_str()).unwrap();
-        let second = items.page(tenant, Some(&next), two).await.unwrap();
-        assert_eq!(second.items, created[2..]);
-        assert!(second.next.is_none());
+        let selection = CollectionRequest::<Items>::new(NoFilters {}, PageSize::new(2).unwrap());
+        let first = items.page(tenant, &selection).await.unwrap();
+        let expected: Vec<ItemView> = created.iter().cloned().map(Into::into).collect();
+        assert_eq!(first.items(), &expected[..2]);
+        let next = first.next_cursor().expect("a third item follows").clone();
+        let second = items
+            .page(tenant, &selection.continuing(next.clone()))
+            .await
+            .unwrap();
+        assert_eq!(second.items(), &expected[2..]);
+        assert!(second.next_cursor().is_none());
 
-        // Another tenant's listing refuses the cursor instead of paging its own rows.
+        // Tenant and effective limit are contextual admission, not cursor authority.
+        let continued = CollectionRequest::<Items>::new(NoFilters {}, PageSize::new(2).unwrap())
+            .continuing(next.clone());
         assert!(matches!(
-            items.page(other, Some(&next), two).await,
-            Err(ItemsError::Cursor(_))
+            items.page(other, &continued).await,
+            Err(ItemsError::Paging(PagingError::Cursor(_)))
+        ));
+        let changed = CollectionRequest::<Items>::new(NoFilters {}, PageSize::new(1).unwrap())
+            .continuing(next);
+        assert!(matches!(
+            items.page(tenant, &changed).await,
+            Err(ItemsError::Paging(PagingError::Cursor(_)))
         ));
 
         // An exact read sees only the tenant's own item.

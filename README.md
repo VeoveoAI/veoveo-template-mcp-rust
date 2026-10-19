@@ -94,16 +94,14 @@ that name: the crate, binary, image and image title all use the repository name.
 
 The server's slug names its schema, its URI scheme, its permissions and its MCP path.
 Replace `template` in `server()`, the scheme in `src/mcp/setup.rs`, the addresses in
-`src/contract/resource.rs` and `src/mcp/requirements.rs`, the scope and permissions in
+`src/contract/resource.rs` and the ready routes in `src/mcp/mod.rs`, the scope and permissions in
 `src/contract/permissions.rs`, the crate's `sqlx.toml`, its migrations and statements,
-`contract-compliance.json`, the key directory and the `Dockerfile`'s `ensure_server`
+the key directory and the `Dockerfile`'s `ensure_server`
 call and key directory. Give the server the next free port of the installation. Then
 replace the item domain with the server's own, update the crate's `DESIGN.md` and
 `AGENTS.md`, and regenerate `.sqlx`.
 
-The compliance section of the crate's `AGENTS.md` must match `contract-compliance.json`
-exactly; the server refuses to start otherwise. Build the runtime image with its version
-and source revision:
+Build the runtime image with its version and source revision:
 
 ```sh
 docker build --target runtime -t <repository>:<version> \

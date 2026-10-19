@@ -5,7 +5,7 @@ use std::{borrow::Cow, error::Error, fmt};
 
 use veoveo_types::{ResourceFieldCodec, ResourceRouteError, ResourceUriError, Vocabulary};
 
-use super::{ItemId, ListCursor};
+use super::ItemId;
 
 /// A resource address that failed admission.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -13,7 +13,6 @@ pub enum TemplateResourceError {
     Uri(ResourceUriError),
     UnknownResource,
     InvalidId,
-    InvalidCursor,
 }
 
 impl fmt::Display for TemplateResourceError {
@@ -24,7 +23,6 @@ impl fmt::Display for TemplateResourceError {
                 f.write_str("unknown or noncanonical template resource address")
             }
             Self::InvalidId => f.write_str("invalid item identity"),
-            Self::InvalidCursor => f.write_str("invalid item listing cursor"),
         }
     }
 }
@@ -63,11 +61,8 @@ pub enum TemplateResource {
     Document(#[resource(variable = "doc_id", codec = TemplateFieldCodec)] TemplateDocument),
     #[resource(template = "template://contract")]
     Contract,
-    #[resource(template = "template://items{?cursor}", route_error = listing_route_error)]
-    Items {
-        #[resource(codec = TemplateFieldCodec)]
-        cursor: Option<ListCursor>,
-    },
+    #[resource(template = "template://items")]
+    Items,
     #[resource(template = "template://item/{item_id}")]
     Item(#[resource(variable = "item_id", codec = TemplateFieldCodec)] ItemId),
 }
@@ -75,7 +70,7 @@ pub enum TemplateResource {
 impl TemplateResource {
     /// The first page of the caller's items.
     pub fn items() -> Self {
-        Self::Items { cursor: None }
+        Self::Items
     }
 }
 
@@ -83,13 +78,6 @@ fn route_error(error: ResourceRouteError) -> TemplateResourceError {
     match error {
         ResourceRouteError::Uri(error) => TemplateResourceError::Uri(error),
         _ => TemplateResourceError::UnknownResource,
-    }
-}
-
-fn listing_route_error(error: ResourceRouteError) -> TemplateResourceError {
-    match error {
-        ResourceRouteError::Query => TemplateResourceError::InvalidCursor,
-        _ => route_error(error),
     }
 }
 
@@ -103,16 +91,6 @@ impl ResourceFieldCodec<TemplateDocument> for TemplateFieldCodec {
             .map_err(|_| TemplateResourceError::UnknownResource)
     }
     fn text(value: &TemplateDocument) -> Cow<'_, str> {
-        value.as_str().into()
-    }
-}
-
-impl ResourceFieldCodec<ListCursor> for TemplateFieldCodec {
-    type Error = TemplateResourceError;
-    fn parse(value: &str) -> Result<ListCursor, Self::Error> {
-        ListCursor::parse(value).map_err(|_| TemplateResourceError::InvalidCursor)
-    }
-    fn text(value: &ListCursor) -> Cow<'_, str> {
         value.as_str().into()
     }
 }
@@ -155,7 +133,6 @@ mod tests {
             "template://docs/agents".to_owned(),
             "template://contract".to_owned(),
             "template://items".to_owned(),
-            "template://items?cursor=abc_-1".to_owned(),
             format!("template://item/{ITEM}"),
         ] {
             let address = parse(&uri).unwrap_or_else(|error| panic!("{uri}: {error}"));
