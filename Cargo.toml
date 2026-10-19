@@ -17,7 +17,7 @@ veoveo-store = { git = "https://github.com/VeoveoAI/veoveo-core", rev = "433ed5f
 veoveo-types = { git = "https://github.com/VeoveoAI/veoveo-core", rev = "433ed5f3a054e44da0bcb4aece2154ef695aeb07" }
 # The Rust SDK for Veoveo MCP servers: the contract feature for declarations, the server
 # feature for hosting, registration and the forwarded identity.
-veoveo-hub-sdk = { git = "https://github.com/VeoveoAI/veoveo-hub-sdk", rev = "c6ef6a1383d8e8f7f35434a5f224898fbb123081", default-features = false }
+veoveo-hub-sdk = { git = "https://github.com/VeoveoAI/veoveo-hub-sdk", rev = "b3da412fffa67420148bd677645d4b27f072d7a2", default-features = false }
 
 anyhow = "=1.0.104"
 clap = { version = "4.6.7", features = ["derive", "env"] }
