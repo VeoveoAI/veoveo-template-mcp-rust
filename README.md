@@ -30,13 +30,13 @@ named items for each tenant: the `create_item` tool records one and returns its 
 as `resultUri`, `template://item/{item_id}` reads it, and `template://items` pages
 through the tenant's items. The crate's [`DESIGN.md`](crates/veoveo-template-mcp-rust/DESIGN.md)
 describes the domain, and its [`AGENTS.md`](crates/veoveo-template-mcp-rust/AGENTS.md)
-holds the contract compliance the server declares. The server serves both documents
-under `template://docs`.
+holds its authored operating manual. The server serves both documents under
+`template://docs`.
 
 | Module | Holds |
 |---|---|
 | `src/contract/` | The `contract` feature: `ItemId` through the shared `id` declaration, `TemplateResource` through `resource_address`, the `Vocabulary` scope and permissions, and the tool's request and result |
-| `src/mcp/` | The tool router, resource reads, the requirement table that both the registration and every handler check, the checked setup with `server_docs!`, and the registration declaration |
+| `src/mcp/` | One typed `Routes` table for tools, resource readers and access policies; setup with `server_docs!`; registration and permission requirements derived from those routes |
 | `src/store/` | The `template` schema's statements and the keyset listing |
 | `src/server/` | Configuration, registration with the Hub, the database login it issues, the process instance and serving |
 
