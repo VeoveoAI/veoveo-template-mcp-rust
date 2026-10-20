@@ -42,7 +42,7 @@ holds its authored operating manual. The server serves both documents under
 
 At startup the server registers with the Hub, connects with the database login the
 Hub issues, starts a process instance, applies its migrations and serves MCP at
-`{public_base_url}/template/mcp`. Stopping deletes the registration.
+`{public_base_url}/template/mcp`. Process stop retains the native saved registration for restart; explicit retirement deletes it.
 
 `tests/mcp.rs` calls the server through the SDK's in-process test Hub, with the
 permissions each case grants, against a migrated database.
@@ -167,3 +167,12 @@ the same metadata and resumes native saved registration, including the original
 private database grant only for that same verified registration. Process stop is
 separate from explicit retirement; Hub orphan grace remains. Missing/expired
 registration needs fresh trusted admission rather than global-bootstrap fallback.
+
+
+Source-backed activation uses the SDK's existing listener-root `/readyz` and a live
+native process registration before selecting a candidate. The template installs
+this readiness check after registration, database connection and migration, and
+reports unavailable if its kernel instance is lost. Server authors should bind
+`HostedServer::readiness` to their actual application prerequisites. This probe is
+not authenticated MCP qualification; discovery, schemas and tools must still pass
+through an ordinarily admitted selected Hub session.

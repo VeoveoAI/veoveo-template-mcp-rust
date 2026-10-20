@@ -4,7 +4,7 @@
 mod config;
 mod registration;
 
-use std::net::SocketAddr;
+use std::{net::SocketAddr, sync::Arc};
 
 use anyhow::{Context, Result};
 use clap::Parser;
@@ -77,19 +77,28 @@ async fn serve(
     )
     .await
     .context("connecting to the installation database")?;
-    let instance = Instance::start(&store, &crate::server())
-        .await
-        .context("starting the process instance")?;
+    let instance = Arc::new(
+        Instance::start(&store, &crate::server())
+            .await
+            .context("starting the process instance")?,
+    );
     store
         .migrate_server(&crate::server(), crate::migrator())
         .await
         .context("applying the server's migrations")?;
     let items = ItemStore::new(store.clone());
+    let ready_instance = instance.clone();
     let hosted = HostedServer::for_domain::<TemplateMcp>()
         .deployment(deployment, args.allow_loopback_hosts)?
         .allowed_hosts(args.allowed_hosts.iter().cloned())
         .internal_trust(registration.access_tokens(), http)?
         .handler(move || Hosted::new(TemplateMcp::new(items.clone())))
+        // The SDK's existing anonymous /readyz is installed only after native
+        // registration, database connection and schema initialization succeeded.
+        .readiness(move || {
+            let instance = ready_instance.clone();
+            async move { !instance.is_lost() }
+        })
         .build();
     let served = tokio::select! {
         served = hosted.serve(SocketAddr::from(([0, 0, 0, 0], args.port))) => served,
