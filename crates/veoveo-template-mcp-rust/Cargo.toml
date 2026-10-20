@@ -68,6 +68,7 @@ url = { workspace = true, optional = true }
 veoveo-store = { workspace = true, optional = true }
 
 [dev-dependencies]
+tempfile.workspace = true
 veoveo-hub-sdk = { workspace = true, features = ["server", "testing"] }
 # `database-conformance` holds the crate's queries and schema to core's database rules.
 veoveo-fixtures = { workspace = true, features = ["store", "database-conformance"] }

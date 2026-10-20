@@ -147,3 +147,23 @@ pushes its own branch to Lore, and builds and tests inside the environment.
 ## License
 
 Apache-2.0. See [LICENSE](LICENSE).
+
+## Deployment Admission And Offline Description
+
+`VEOVEO_DEPLOYMENT_ID` (`--deployment-id`) is a required trusted-allocated UUIDv7,
+shared by registration and token verification. Keep it and the private key directory
+on ordinary process restart; new contract/build/endpoint identity is separately admitted.
+
+```sh
+veoveo-template-mcp-rust --describe-registration \
+  --deployment-id <allocated-uuidv7> \
+  --public-base-url https://candidate.example \
+  --key-directory /sandbox/builds/<build-id>/keys
+```
+
+This prints native public metadata and creates/reuses the private worker key. It
+needs no Hub/admission credentials and makes no network/DB calls. Serving derives
+the same metadata and resumes native saved registration, including the original
+private database grant only for that same verified registration. Process stop is
+separate from explicit retirement; Hub orphan grace remains. Missing/expired
+registration needs fresh trusted admission rather than global-bootstrap fallback.
