@@ -148,11 +148,20 @@ pushes its own branch to Lore, and builds and tests inside the environment.
 
 Apache-2.0. See [LICENSE](LICENSE).
 
-## Deployment Admission And Offline Description
+## Registration And Offline Description
 
-`VEOVEO_DEPLOYMENT_ID` (`--deployment-id`) is a required trusted-allocated UUIDv7,
-shared by registration and token verification. Keep it and the private key directory
-on ordinary process restart; new contract/build/endpoint identity is separately admitted.
+`VEOVEO_DEPLOYMENT_ID` (`--deployment-id`) is a UUIDv7 shared by registration and
+token verification; Hub supplies it with the registration token. Keep it and the
+private key directory on ordinary process restart.
+
+The server registers with `VEOVEO_REGISTRATION_SECRET` on its first start and resumes
+its saved registration afterwards, including the original private database grant;
+process stop does not retire it. When its declarations change, or the Hub no longer
+knows the saved registration, it registers again with the same token and replaces
+the saved state.
+
+To print the public registration metadata offline, reusing the key in
+`--key-directory`, without registering or connecting to Hub or the database:
 
 ```sh
 veoveo-template-mcp-rust --describe-registration \
@@ -161,17 +170,9 @@ veoveo-template-mcp-rust --describe-registration \
   --key-directory /sandbox/builds/<build-id>/keys
 ```
 
-This prints native public metadata and creates/reuses the private worker key. It
-needs no Hub/admission credentials and makes no network/DB calls. Serving derives
-the same metadata and resumes native saved registration, including the original
-private database grant only for that same verified registration. Process stop is
-separate from explicit retirement; Hub orphan grace remains. Missing/expired
-registration needs fresh trusted admission rather than global-bootstrap fallback.
 
-
-Source-backed activation uses the SDK's existing listener-root `/readyz` and a live
-native process registration before selecting a candidate. The template installs
-this readiness check after registration, database connection and migration, and
+The SDK serves readiness at the listener root, `/readyz`. The template installs this
+readiness check after registration, database connection and migration, and
 reports unavailable if its kernel instance is lost. Server authors should bind
 `HostedServer::readiness` to their actual application prerequisites. This probe is
 not authenticated MCP qualification; discovery, schemas and tools must still pass
