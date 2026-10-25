@@ -92,6 +92,28 @@ ClientInformation against exact metadata/key/Hub authority, preserving its origi
 private database grant only for that same verified registration. A missing/expired
 registration requires fresh trusted scoped admission, with no global-bootstrap fallback.
 
+## Factory
+
+A branch of a repository made from the template is served from its own factory sandbox
+while it has an executable `openshell/run`; the Hub's
+[factory sandboxes](https://github.com/VeoveoAI/veoveo-hub/blob/main/crates/veoveo-hub/DESIGN.md#factory-sandboxes)
+build and run it. The repository owns three paths, versioned with each branch:
+
+| Path | Holds |
+|---|---|
+| `openshell/image/` | The environment image: a `Dockerfile` and the files it copies, with the toolchain that builds the branch. It runs as UID 10001, and its caches live under `/sandbox`, the sandbox's persistent disk |
+| `openshell/run` | Builds the branch in its checkout, then `exec`s the server. It sets what is server-specific, such as the key directory under `/sandbox/state` |
+| `openshell/policy.yaml` | Optional network rules, in OpenShell's own policy format, for anything the installation's base policy does not admit |
+
+Every start fetches the branch with `lore sync --reset`, which removes untracked files
+except those `.loreignore` lists, so the template lists its build output, `target/`,
+there and keeps the incremental build. The Hub supplies `VEOVEO_DEPLOYMENT_ID`,
+`VEOVEO_PUBLIC_BASE_URL`, `VEOVEO_PORT`, `VEOVEO_HUB_ISSUER` and the registration
+secret in the environment, and the server resumes its saved registration on every
+later start. A push that changes `openshell/image/` or `openshell/policy.yaml` gives
+the branch a new sandbox with an empty disk; any other push restarts it. The root
+`Dockerfile` stays the release and check build.
+
 ## Persistence
 
 | Table | Key | Retention |
