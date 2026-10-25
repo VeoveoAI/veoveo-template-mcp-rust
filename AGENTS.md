@@ -4,6 +4,8 @@ These rules apply to this repository and to component repositories created from 
 crate's own rules are in
 [`crates/veoveo-template-mcp-rust/AGENTS.md`](crates/veoveo-template-mcp-rust/AGENTS.md).
 
+- The design is in [crates/veoveo-template-mcp-rust/DESIGN.md](crates/veoveo-template-mcp-rust/DESIGN.md). Change it in the
+  same change as the code.
 - Use upstream runtimes such as PostgreSQL unmodified. Adapt through
   supported configuration.
 - Prefer strong types: typed structs, enums and domain identifiers over raw strings and
