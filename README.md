@@ -89,8 +89,9 @@ target URIs are the server's own, under its slug, as core's
 ## Start a component
 
 Create the repository from this template and rename the crate to the repository name,
-`veoveo-mcp-<name>`. In the `Dockerfile`, set `COMPONENT` and the `ENTRYPOINT` path to
-that name: the crate, binary, image and image title all use the repository name.
+`veoveo-mcp-<name>`. In the `Dockerfile`, set `COMPONENT`, the `ENTRYPOINT` path and the
+prefix of every cache mount `id` to that name: the crate, binary, image, image title and
+build caches all use the repository name.
 
 The server's slug names its schema, its URI scheme, its permissions and its MCP path.
 Replace `template` in `server()`, the scheme in `src/mcp/setup.rs`, the addresses in
