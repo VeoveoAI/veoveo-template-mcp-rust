@@ -97,13 +97,14 @@ registration requires fresh trusted scoped admission, with no global-bootstrap f
 A branch of a repository made from the template is served from its own factory sandbox
 while it has an executable `openshell/run`; the Hub's
 [factory sandboxes](https://github.com/VeoveoAI/veoveo-hub/blob/main/crates/veoveo-hub/DESIGN.md#factory-sandboxes)
-build and run it. The repository owns three paths, versioned with each branch:
+build and run it. The repository owns these paths, versioned with each branch:
 
 | Path | Holds |
 |---|---|
 | `openshell/image/` | The environment image: a `Dockerfile` and the files it copies, with the toolchain that builds the branch and nothing else. It runs as UID 10001, and its caches live under `/sandbox`, the sandbox's persistent disk |
 | `openshell/run` | Builds the branch in its checkout, then `exec`s the server. It sets what is server-specific, such as the key directory under `/sandbox/state` |
 | `openshell/policy.yaml` | Optional network rules, in OpenShell's own policy format, for anything the installation's base policy does not admit |
+| `openshell/providers.yaml` | Optional: the installation provider profiles the branch requests by name under `providers`, such as `vv-factory-model`. The Hub attaches only those the control plane grants to the repository, and the instance's status names each one it did not attach |
 
 A repository's image carries only its toolchain. The installation's factory template
 gives the sandbox its size and mounts Lore's command line from the installation's own
