@@ -114,8 +114,8 @@ fetch removes untracked files except those `.loreignore` lists, so the template 
 its build output, `target/`, there and keeps the incremental build. The Hub supplies
 `VEOVEO_DEPLOYMENT_ID`, `VEOVEO_PUBLIC_BASE_URL`, `VEOVEO_PORT`, `VEOVEO_HUB_ISSUER` and
 the registration secret in the environment, and the server resumes its saved
-registration on every later start. A push that changes `openshell/image/` or
-`openshell/policy.yaml`, or the first push after the installation changed its factory
+registration on every later start. A push that changes `openshell/image/`,
+`openshell/policy.yaml` or `openshell/providers.yaml`, or the first push after the installation changed its factory
 template, gives the branch a new sandbox with an empty disk; any other push restarts
 it. The root `Dockerfile` stays the release and check build.
 
