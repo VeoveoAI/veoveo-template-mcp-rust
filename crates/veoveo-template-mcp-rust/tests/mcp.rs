@@ -172,3 +172,75 @@ async fn items_are_created_read_and_listed_with_their_permissions() {
     .await
     .expect("the MCP test exceeded 60 seconds");
 }
+
+/// Every file under `dir`, as its path relative to `root`, `/`-separated.
+fn files(root: &std::path::Path, dir: &std::path::Path, found: &mut Vec<String>) {
+    for entry in std::fs::read_dir(dir).unwrap() {
+        let path = entry.unwrap().path();
+        if path.is_dir() {
+            files(root, &path, found);
+        } else {
+            let relative = path.strip_prefix(root).unwrap();
+            found.push(relative.to_string_lossy().replace('\\', "/"));
+        }
+    }
+}
+
+#[tokio::test]
+async fn the_skills_manifest_names_every_file_with_its_digest() {
+    tokio::time::timeout(Duration::from_secs(60), async {
+        let db = TestDb::new().await;
+        db.migrate_server(&server(), migrator()).await;
+        let hub = hub(&db, &[ItemsRead]).await;
+        let listed = hub.rpc("skills/list", json!({})).await;
+        let skills = listed["result"]["skills"]
+            .as_array()
+            .unwrap_or_else(|| panic!("{listed}"));
+        assert_eq!(skills.len(), 1);
+        let skill = &skills[0];
+        assert_eq!(skill["uri"], "skill://template/keep-items/SKILL.md");
+        assert_eq!(skill["frontmatter"]["name"], "keep-items");
+
+        // The manifest lists exactly the files under skills/keep-items/, each with the
+        // size and SHA-256 of the bytes a read answers.
+        let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("skills/keep-items");
+        let mut on_disk = Vec::new();
+        files(&root, &root, &mut on_disk);
+        on_disk.sort();
+        let manifest = skill["resources"].as_array().expect("a full manifest");
+        let mut listed: Vec<String> = manifest
+            .iter()
+            .map(|file| {
+                file["uri"]
+                    .as_str()
+                    .unwrap()
+                    .strip_prefix("skill://template/keep-items/")
+                    .unwrap()
+                    .to_owned()
+            })
+            .collect();
+        listed.sort();
+        assert_eq!(listed, on_disk);
+        for file in manifest {
+            let read = hub.rpc("resources/read", json!({"uri": file["uri"]})).await;
+            let text = read["result"]["contents"][0]["text"]
+                .as_str()
+                .unwrap_or_else(|| panic!("{read}"));
+            assert_eq!(text.len() as u64, file["size"].as_u64().unwrap());
+            assert_eq!(
+                rmcp::model::sha256_digest(text.as_bytes()),
+                file["digest"].as_str().unwrap()
+            );
+        }
+        // skills/get answers the listed entry.
+        let got = hub
+            .rpc(
+                "skills/get",
+                json!({"uri": "skill://template/keep-items/SKILL.md"}),
+            )
+            .await;
+        assert_eq!(got["result"]["skill"], *skill);
+    })
+    .await
+    .expect("the skills test exceeded 60 seconds");
+}

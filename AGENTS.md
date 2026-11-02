@@ -15,6 +15,12 @@ crate's own rules are in
   resources, subscriptions, the MCP Tasks adapter and calls to other servers. Depend on
   it by Git revision. veoveo-core holds no MCP; take types, the store, Tasks, usage and audit
   from it.
+- How an agent uses the server is in its skills, `skills/{name}/SKILL.md` and the files
+  beside it, embedded by `build.rs` and served at `skill://{slug}/{name}/{path}`, as the
+  design's [Skills](crates/veoveo-template-mcp-rust/DESIGN.md#skills) describes. The
+  `instructions` say what the server is and name each skill's address; tool and resource
+  descriptions say only what each does. Skill text names tools as callers see them
+  through the Hub, `{slug}__{tool}`.
 - A server that calls another server depends on that server's `contract` feature by Git
   revision, declares the permissions it calls with through
   the ready route builder’s `uses`, and calls through `ctx.client()` in a handler or

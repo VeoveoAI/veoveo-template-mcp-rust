@@ -26,6 +26,9 @@ replaces it with its own.
 - Every listing uses the native `Collection`/`Pager` and `ReadCollection` construction
   path. Owner resource addresses contain only path/filter fields; shared limit and
   cursor parsing belongs to the SDK.
+- `skills/keep-items/` is the reference skill. The setup's test holds that the
+  instructions name every skill, and `tests/mcp.rs` that the manifest names exactly the
+  skill's files, each with the digest and size of its text.
 - Every statement is a `.sql` file under `src/store/items/` run through sqlx's checked
   macros. Regenerate `.sqlx` after changing a query or a migration.
 
