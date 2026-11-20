@@ -115,7 +115,7 @@ docker build --target runtime -t <repository>:<version> \
 docker build --target check .
 ```
 
-The `check` stage checks the `.sqlx` metadata against a migrated PostgreSQL 18.6
+The `check` stage checks the `.sqlx` metadata against a migrated PostgreSQL 18.7
 database, then runs rustfmt, clippy with warnings denied, cargo-deny, cargo-hack on each
 feature and the nextest `ci` profile. It runs the same way on macOS and Linux.
 
