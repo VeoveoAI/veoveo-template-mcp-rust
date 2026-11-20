@@ -34,7 +34,7 @@ port         8810
 | [URI Template RFC 6570](https://www.rfc-editor.org/rfc/rfc6570) | Discovery declares simple variables and a listing that continues through a `cursor` query parameter. |
 | [JWT access tokens RFC 9068](https://www.rfc-editor.org/rfc/rfc9068.html) | The Hub forwards each request with an access token that names the caller, the caller's tenant and the permissions it granted. |
 | [Veoveo server registration](https://github.com/VeoveoAI/veoveo-hub-sdk) | The server initially registers through RFC7591, resumes native RFC7592 credentials on restart, and declares its permissions in `ai.veoveo/authorization`. |
-| [PostgreSQL 18](https://www.postgresql.org/docs/18/) | Server 18.6 through sqlx 0.9.0, under the [installation database design](https://github.com/VeoveoAI/veoveo-core/blob/9a6b3ff95469ff19f9ccb513421a57ba6751aa9e/docs/DATABASE.md) of `veoveo-core`. The server owns the schema `template`, applies its own migrations and runs every statement from a `.sql` file that sqlx checks. |
+| [PostgreSQL 19](https://www.postgresql.org/docs/19/) | Server 19.0 through sqlx 0.9.0, under the [installation database design](https://github.com/VeoveoAI/veoveo-core/blob/9a6b3ff95469ff19f9ccb513421a57ba6751aa9e/docs/DATABASE.md) of `veoveo-core`. The server owns the schema `template`, applies its own migrations and runs every statement from a `.sql` file that sqlx checks. |
 
 ## Domain Contract
 

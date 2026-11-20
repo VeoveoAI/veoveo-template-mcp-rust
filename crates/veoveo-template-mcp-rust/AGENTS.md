@@ -34,7 +34,7 @@ replaces it with its own.
 
 ## Build And Test
 
-- `cargo test -p veoveo-template-mcp-rust` with the PostgreSQL 18 server programs on
+- `cargo test -p veoveo-template-mcp-rust` with the PostgreSQL 19 server programs on
   `PATH`, as the `dev` image provides them.
 - `cargo test -p veoveo-template-mcp-rust --no-default-features --features contract`
   checks the contract alone.

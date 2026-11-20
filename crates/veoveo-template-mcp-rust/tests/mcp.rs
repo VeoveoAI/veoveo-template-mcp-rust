@@ -1,6 +1,6 @@
 //! The MCP surface through the SDK's in-process Hub against a migrated database:
 //! discovery, permission refusals, `create_item` and the reads of its product. The test
-//! user is `user-1` of `tenant-a`. Requires the PostgreSQL 18 server programs on `PATH`.
+//! user is `user-1` of `tenant-a`. Requires the PostgreSQL 19 server programs on `PATH`.
 use std::time::Duration;
 
 use serde_json::{Value, json};

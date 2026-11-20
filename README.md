@@ -59,7 +59,7 @@ The statements and tables follow the server schema rules of veoveo-core's
 tenant predicates, row bounds, index use under generic plans, and a primary key, an
 index behind every foreign key and a `Retention:` comment on every table.
 The crate's `tests/database_conformance.rs` checks them against a fresh database. Tests need the
-PostgreSQL 18 server programs on `PATH`; each test clones its own database from a
+PostgreSQL 19 server programs on `PATH`; each test clones its own database from a
 migrated template.
 
 After changing a query or a migration, regenerate `.sqlx` against a database with the
@@ -115,7 +115,7 @@ docker build --target runtime -t <repository>:<version> \
 docker build --target check .
 ```
 
-The `check` stage checks the `.sqlx` metadata against a migrated PostgreSQL 18.7
+The `check` stage checks the `.sqlx` metadata against a migrated PostgreSQL 19.0
 database, then runs rustfmt, clippy with warnings denied, cargo-deny, cargo-hack on each
 feature and the nextest `ci` profile. It runs the same way on macOS and Linux.
 

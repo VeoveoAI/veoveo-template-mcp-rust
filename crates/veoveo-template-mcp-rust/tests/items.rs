@@ -1,5 +1,5 @@
 //! The item store against a fresh PostgreSQL database migrated as the server's own
-//! login. Requires the PostgreSQL 18 server programs on `PATH`.
+//! login. Requires the PostgreSQL 19 server programs on `PATH`.
 use std::time::Duration;
 
 use veoveo_fixtures::store::TestDb;
